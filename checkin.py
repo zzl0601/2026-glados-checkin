@@ -170,12 +170,16 @@ def pushplus(token, title, content):
 def telegram_push(token, chat_id, title, content):
     if not token or not chat_id: return
     try:
+        import re
         url = f"https://api.telegram.org/bot{token}/sendMessage"
-        # Convert some html to text or use HTML parse mode. Telegram supports limited HTML.
+        # Convert HTML to be Telegram-compatible
         text = f"<b>{title}</b>\n\n{content}"
-        # Telegram HTML doesn't support <div>, <p>, <br> well. Let's send basic text format or stripped html.
-        # But to keep it simple, we just use HTML mode and replace <br> with \n, and strip out other tags or let standard msg send
-        text = text.replace("<br>", "\n").replace("<p>", "").replace("</p>", "\n").replace("<div>", "").replace("</div>", "\n").replace("<h3>", "<b>").replace("</h3>", "</b>\n")
+        # Pre-process some tags for spacing
+        text = text.replace("<br>", "\n").replace("</div>", "\n").replace("</p>", "\n").replace("</h3>", "</b>\n").replace("<h3>", "<b>")
+        # Strip all HTML tags EXCEPT the ones supported by Telegram: b, i, u, s, a, code, pre
+        text = re.sub(r"<(?!\/?(b|i|u|s|a|code|pre)\b)[^>]+>", "", text)
+        # Collapse multiple newlines
+        text = re.sub(r"\n\s*\n", "\n\n", text).strip()
         data = {
             "chat_id": chat_id,
             "text": text,
